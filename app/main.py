@@ -90,6 +90,31 @@ def me(user: UserDep) -> models.User:
     return user
 
 
+@app.patch("/me", response_model=schemas.UserOut)
+def update_me(body: schemas.UpdateProfileIn, user: UserDep, db: DbDep) -> models.User:
+    if body.handle is not None and body.handle != user.handle:
+        taken = db.scalar(select(models.User).where(models.User.handle == body.handle))
+        if taken is not None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Handle ya registrado")
+        user.handle = body.handle
+    if body.name is not None:
+        user.name = body.name
+    if body.avatar is not None:
+        # "" elimina la foto; cualquier otro valor la reemplaza.
+        user.avatar = body.avatar or None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.post("/me/password", status_code=204)
+def change_password(body: schemas.ChangePasswordIn, user: UserDep, db: DbDep) -> None:
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Contraseña actual incorrecta")
+    user.password_hash = hash_password(body.new_password)
+    db.commit()
+
+
 # ───────────────────────── rutinas ─────────────────────────
 @app.get("/routines", response_model=list[schemas.RoutineOut])
 def list_routines(user: UserDep, db: DbDep) -> list[models.Routine]:

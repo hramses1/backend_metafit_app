@@ -1,7 +1,7 @@
 """Modelos ORM."""
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, JSON
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -18,6 +18,8 @@ class User(Base):
     handle: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120))
     password_hash: Mapped[str] = mapped_column(String(255))
+    # Foto de perfil como base64 (sin prefijo data:). Opcional.
+    avatar: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     routines: Mapped[list["Routine"]] = relationship(back_populates="owner", cascade="all, delete-orphan")

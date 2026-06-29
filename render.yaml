@@ -1,0 +1,21 @@
+# Blueprint de Render para la API MetaFit.
+# Deploy: en render.com → New → Blueprint → conecta el repo backend_metafit_app.
+#
+# Por defecto usa SQLite efímera (se borra en cada redeploy). Para datos
+# persistentes: crea un Postgres (Neon/Supabase/Render) y pon su URL en la env
+# METAFIT_DB desde el dashboard (sync:false la deja editable a mano).
+services:
+  - type: web
+    name: metafit-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: METAFIT_SECRET
+        generateValue: true # secreto JWT aleatorio y seguro
+      - key: METAFIT_DB
+        sync: false # opcional: pega aquí la URL de Postgres para persistencia

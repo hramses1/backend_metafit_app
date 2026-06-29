@@ -7,3 +7,6 @@ bcrypt==4.2.1
 python-multipart==0.0.12
 httpx==0.28.1
 pytest==8.3.4
+
+# Producción: driver Postgres (opcional; solo se usa si METAFIT_DB apunta a Postgres)
+psycopg[binary]==3.2.3

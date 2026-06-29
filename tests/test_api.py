@@ -39,6 +39,35 @@ def test_register_login_me(client):
     assert me.json()["handle"] == "ana"
 
 
+def test_update_profile_name_handle_avatar(client, auth):
+    r = client.patch("/me", json={"name": "Marco P.", "handle": "marcop", "avatar": "Zm9v"}, headers=auth)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "Marco P."
+    assert body["handle"] == "marcop"
+    assert body["avatar"] == "Zm9v"
+    # Quitar la foto con cadena vacía.
+    assert client.patch("/me", json={"avatar": ""}, headers=auth).json()["avatar"] is None
+
+
+def test_update_profile_handle_conflict(client, auth):
+    client.post("/auth/register", json={"handle": "lucia", "name": "Lucia", "password": "secret123"})
+    assert client.patch("/me", json={"handle": "lucia"}, headers=auth).status_code == 409
+
+
+def test_change_password(client):
+    reg = client.post("/auth/register", json={"handle": "leo", "name": "Leo", "password": "oldpass1"})
+    headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}
+    # Contraseña actual incorrecta → 401.
+    bad = client.post("/me/password", json={"current_password": "wrong", "new_password": "newpass1"}, headers=headers)
+    assert bad.status_code == 401
+    # Cambio correcto → 204 y login con la nueva.
+    ok = client.post("/me/password", json={"current_password": "oldpass1", "new_password": "newpass1"}, headers=headers)
+    assert ok.status_code == 204
+    assert client.post("/auth/login", json={"handle": "leo", "password": "oldpass1"}).status_code == 401
+    assert client.post("/auth/login", json={"handle": "leo", "password": "newpass1"}).status_code == 200
+
+
 def test_protected_requires_token(client):
     assert client.get("/sessions").status_code == 401
     assert client.get("/sessions", headers={"Authorization": "Bearer garbage"}).status_code == 401

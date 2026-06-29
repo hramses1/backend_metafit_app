@@ -25,6 +25,18 @@ class UserOut(BaseModel):
     id: int
     handle: str
     name: str
+    avatar: str | None = None
+
+
+class UpdateProfileIn(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    handle: str | None = Field(default=None, min_length=2, max_length=64)
+    avatar: str | None = None  # base64 sin prefijo; "" para quitar la foto
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
 
 
 # ---- Rutinas ----
