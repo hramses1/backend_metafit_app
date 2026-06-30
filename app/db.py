@@ -53,3 +53,10 @@ def _migrate():
     if "avatar" not in cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN avatar TEXT"))
+    if "google_sub" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN google_sub TEXT"))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_sub "
+                "ON users(google_sub) WHERE google_sub IS NOT NULL"
+            ))

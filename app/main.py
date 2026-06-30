@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session as OrmSession
 
 from . import models, schemas
 from .db import get_db, init_db
-from .security import create_token, decode_token, hash_password, verify_password
+from .security import create_token, decode_token, hash_password, verify_google_id_token, verify_password
 
 
 @asynccontextmanager
@@ -74,6 +74,39 @@ def register(body: schemas.RegisterIn, db: DbDep) -> schemas.Token:
     db.add(user)
     db.commit()
     db.refresh(user)
+    return schemas.Token(access_token=create_token(user.id))
+
+
+@app.post("/auth/google", response_model=schemas.Token)
+def google_auth(body: schemas.GoogleAuthIn, db: DbDep) -> schemas.Token:
+    payload = verify_google_id_token(body.id_token)
+    if payload is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token de Google inválido")
+
+    google_sub = payload["sub"]
+    email: str = payload.get("email", "")
+    name: str = payload.get("name", email.split("@")[0])
+
+    # Busca usuario existente por google_sub
+    user = db.scalar(select(models.User).where(models.User.google_sub == google_sub))
+    if user is None:
+        # Deriva handle desde email, evita colisiones
+        base_handle = email.split("@")[0].replace(".", "_")[:60]
+        handle = base_handle
+        suffix = 1
+        while db.scalar(select(models.User).where(models.User.handle == handle)):
+            handle = f"{base_handle}_{suffix}"
+            suffix += 1
+        user = models.User(
+            handle=handle,
+            name=name or handle,
+            password_hash="google_auth_only",
+            google_sub=google_sub,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
     return schemas.Token(access_token=create_token(user.id))
 
 

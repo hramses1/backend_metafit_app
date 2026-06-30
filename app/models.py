@@ -20,6 +20,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     # Foto de perfil como base64 (sin prefijo data:). Opcional.
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    google_sub: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     routines: Mapped[list["Routine"]] = relationship(back_populates="owner", cascade="all, delete-orphan")

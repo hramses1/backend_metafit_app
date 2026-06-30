@@ -39,6 +39,10 @@ class ChangePasswordIn(BaseModel):
     new_password: str = Field(min_length=6, max_length=128)
 
 
+class GoogleAuthIn(BaseModel):
+    id_token: str
+
+
 # ---- Rutinas ----
 class RoutineItem(BaseModel):
     exerciseId: str
