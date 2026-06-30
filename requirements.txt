@@ -8,5 +8,8 @@ python-multipart==0.0.12
 httpx==0.28.1
 pytest==8.3.4
 
+# Verificación de tokens de Apple Sign-In (ES256 con JWKS)
+cryptography==44.0.2
+
 # Producción: driver Postgres (opcional; solo se usa si METAFIT_DB apunta a Postgres)
 psycopg[binary]==3.2.3

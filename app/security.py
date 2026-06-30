@@ -1,10 +1,12 @@
-"""Hash de contraseñas + JWT + verificación Google."""
+"""Hash de contraseñas + JWT + verificación Google + verificación Apple."""
+import json
 import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import httpx
 import jwt
+from jwt.algorithms import ECAlgorithm
 
 SECRET_KEY = os.getenv("METAFIT_SECRET", "dev-secret-change-in-prod")
 ALGORITHM = "HS256"
@@ -45,6 +47,34 @@ GOOGLE_CLIENT_ID = os.getenv(
     "GOOGLE_CLIENT_ID",
     "349347866924-1rc7uk6n8vd79vm3hpf7oe2f83f11dht.apps.googleusercontent.com",
 )
+
+
+APPLE_BUNDLE_ID = os.getenv("APPLE_BUNDLE_ID", "com.metafit.app")
+
+
+def verify_apple_id_token(identity_token: str) -> dict | None:
+    """Verifica un identity token de Sign in with Apple (ES256 vía JWKS).
+    Retorna el payload si válido, None si no."""
+    try:
+        r = httpx.get("https://appleid.apple.com/auth/keys", timeout=10)
+        if r.status_code != 200:
+            return None
+        keys = r.json().get("keys", [])
+        header = jwt.get_unverified_header(identity_token)
+        kid = header.get("kid")
+        matching = next((k for k in keys if k["kid"] == kid), None)
+        if not matching:
+            return None
+        public_key = ECAlgorithm.from_jwk(json.dumps(matching))
+        return jwt.decode(
+            identity_token,
+            public_key,
+            algorithms=["ES256"],
+            audience=APPLE_BUNDLE_ID,
+            issuer="https://appleid.apple.com",
+        )
+    except Exception:
+        return None
 
 
 def verify_google_id_token(id_token: str) -> dict | None:

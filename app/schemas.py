@@ -43,6 +43,11 @@ class GoogleAuthIn(BaseModel):
     id_token: str
 
 
+class AppleAuthIn(BaseModel):
+    identity_token: str
+    full_name: str | None = None  # Solo presente en el primer login con Apple
+
+
 # ---- Rutinas ----
 class RoutineItem(BaseModel):
     exerciseId: str

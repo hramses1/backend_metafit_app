@@ -17,5 +17,9 @@ services:
         value: "3.12.4"
       - key: METAFIT_SECRET
         generateValue: true # secreto JWT aleatorio y seguro
+      - key: GOOGLE_CLIENT_ID
+        sync: false # web client ID de Google OAuth (GCP → Credenciales → ID de cliente web)
+      - key: APPLE_BUNDLE_ID
+        sync: false # bundle ID de iOS: com.metafit.app
       - key: METAFIT_DB
         sync: false # opcional: pega aquí la URL de Postgres para persistencia

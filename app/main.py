@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session as OrmSession
 
 from . import models, schemas
 from .db import get_db, init_db
-from .security import create_token, decode_token, hash_password, verify_google_id_token, verify_password
+from .security import (
+    create_token, decode_token, hash_password,
+    verify_apple_id_token, verify_google_id_token, verify_password,
+)
 
 
 @asynccontextmanager
@@ -74,6 +77,37 @@ def register(body: schemas.RegisterIn, db: DbDep) -> schemas.Token:
     db.add(user)
     db.commit()
     db.refresh(user)
+    return schemas.Token(access_token=create_token(user.id))
+
+
+@app.post("/auth/apple", response_model=schemas.Token)
+def apple_auth(body: schemas.AppleAuthIn, db: DbDep) -> schemas.Token:
+    payload = verify_apple_id_token(body.identity_token)
+    if payload is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token de Apple inválido")
+
+    apple_sub: str = payload["sub"]
+    email: str = payload.get("email", "") or ""
+    name: str = body.full_name or (email.split("@")[0] if email else f"user_{apple_sub[:8]}")
+
+    user = db.scalar(select(models.User).where(models.User.apple_sub == apple_sub))
+    if user is None:
+        base_handle = (email.split("@")[0] or f"apple_{apple_sub[:8]}").replace(".", "_")[:60]
+        handle = base_handle
+        suffix = 1
+        while db.scalar(select(models.User).where(models.User.handle == handle)):
+            handle = f"{base_handle}_{suffix}"
+            suffix += 1
+        user = models.User(
+            handle=handle,
+            name=name or handle,
+            password_hash="apple_auth_only",
+            apple_sub=apple_sub,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
     return schemas.Token(access_token=create_token(user.id))
 
 
